@@ -29,6 +29,11 @@ tool_result() {
     append_msg "$(jq -nc --arg id "$1" --arg c "$2" '{role:"tool",tool_call_id:$id,content:$c}')"
 }
 
+# Drop a trailing user message whose turn failed (keeps history alternating)
+drop_last_user() {
+    jq 'if .[-1].role=="user" then .[:-1] else . end' "$HISTORY_FILE" > "$HISTORY_FILE.tmp" && mv "$HISTORY_FILE.tmp" "$HISTORY_FILE"
+}
+
 # Build request (system prompt + history, cache markers on system and last message) and send it
 call_api() {
     jq -nc --arg m "$MODEL" --arg sys "$(<"$SYSTEM_PROMPT_FILE")" --slurpfile h "$HISTORY_FILE" --argjson t "$TOOLS" '
@@ -51,7 +56,7 @@ while true; do
     while true; do
         resp=$(call_api)
         msg=$(jq -c '.choices[0].message // empty' <<<"$resp" 2>/dev/null)
-        [[ -z "$msg" ]] && { err=$(jq -r '.error.message // empty' <<<"$resp" 2>/dev/null); echo "Error: ${err:-invalid API response}"; break; }
+        [[ -z "$msg" ]] && { err=$(jq -r '.error.message // empty' <<<"$resp" 2>/dev/null); echo "Error: ${err:-invalid API response}"; drop_last_user; break; }
 
         append_msg "$msg"
 

@@ -6,7 +6,7 @@ A lightweight bash-based AI coding agent that uses the OpenRouter API with nativ
 
 ```
 ┌─────────────────────────────────────────────────────────────────┐
-│                         agent.sh                             │
+│                           agent.sh                              │
 │                   Tool-Call Based CLI Agent                     │
 └─────────────────────────────────────────────────────────────────┘
 
@@ -14,48 +14,57 @@ A lightweight bash-based AI coding agent that uses the OpenRouter API with nativ
     │   User Input     │
     │   "You: ___"     │
     └────────┬─────────┘
-             │
+             │ append {role:"user"}
              ▼
     ┌──────────────────────────────────────────────────┐
-    │  Build context:                                  │
-    │  • System prompt (cached)                        │
-    │  • Conversation history (cached)                 │
-    │  • <previous-result> + <task> tags               │
+    │  build_messages():                               │
+    │  • System prompt              (cache_control)    │
+    │  • history.json, last msg     (cache_control)    │
     └────────────────────┬─────────────────────────────┘
                          │
                          ▼
     ┌─────────────┐         ┌─────────────────┐
-    │  agent   │──curl──▶│  OpenRouter API │
-    │             │◀────────│  (Claude Model) │
-    └─────────────┘         └─────────────────┘
-                         │
-           ┌─────────────┴─────────────┐
-           ▼                           ▼
-    ┌──────────────┐           ┌───────────────┐
-    │  Tool Call   │           │  Text Reply   │
-    │  run_script  │           │  (no tool)    │
-    └──────┬───────┘           └───────────────┘
+    │  agent.sh   │──curl──▶│  OpenRouter API │
+    │  + TOOLS    │◀────────│  (Claude model) │
+    └──────┬──────┘         └─────────────────┘
            │
-           ▼
-    ┌──────────────────┐
-    │ Show script      │
-    │ Ask "Run? (y/n)" │
-    └────────┬─────────┘
-             │ (confirmed)
-             ▼
-    ┌──────────────────────────────────────────────────┐
-    │  bash -c "$script" ──┬──▶ stdout                 │
-    │                      └──▶ result.txt (for next)  │
-    └──────────────────────────────────────────────────┘
+           ├──────────────────────────────┐
+           ▼                              ▼
+    ┌──────────────┐              ┌───────────────┐
+    │  tool_calls  │              │  Text reply   │
+    │  run_script  │              │  "AI: ..."    │
+    └──────┬───────┘              └───────┬───────┘
+           │ for each call                │
+           ▼                              ▼
+    ┌──────────────────────┐       back to "You:"
+    │ Show script          │
+    │ Run? (y/n/a=all)     │── n ──▶ "[Skipped by user]"
+    └────────┬─────────────┘                │
+             │ y / a                        │
+             ▼                              │
+    ┌──────────────────────┐                │
+    │ bash -c "$script"    │                │
+    │ (stdout + stderr)    │                │
+    └────────┬─────────────┘                │
+             ▼                              │
+    ┌──────────────────────────────────┐    │
+    │ append {role:"tool",             │◀───┘
+    │         tool_call_id, content}   │
+    └────────┬─────────────────────────┘
+             │
+             └──▶ call API again (loop until text reply)
 ```
 
 ## Files
 
 ```
-├── agent.sh        # Main agent script
-├── history.json       # Conversation memory [{role,content},...]
-├── result.txt         # Last script output (fed back to AI)
-└── system_prompt.txt  # Customizable system instructions
+├── agent.sh           # Main agent (native tool calls)
+├── agent-no-tools.sh  # Legacy agent: extracts bash from ```bash blocks,
+│                      #   feeds output back via result.txt
+├── system_prompt.txt  # Customizable system instructions
+├── history.json       # Conversation memory (user/assistant/tool messages)
+├── result.txt         # Last script output (agent-no-tools.sh only)
+└── generated_script.sh# Last generated script (agent-no-tools.sh only)
 ```
 
 ## Usage
@@ -71,16 +80,22 @@ bash agent.sh
 ```
 
 3. Describe tasks in plain English
-4. Review and confirm script execution with y/n
+4. Review each script and answer `y` (run), `n` (skip), or `a` (run this and all following without asking)
+5. Type `exit` to quit
 
 ### Auto-execute mode
 ```bash
 AUTO=1 bash agent.sh
 ```
 
+### Reset conversation
+```bash
+echo "[]" > history.json
+```
+
 ## Requirements
 
-- curl 
+- curl
 - jq
 - coreutils
 
@@ -89,17 +104,19 @@ AUTO=1 bash agent.sh
 | Variable | Default | Description |
 |----------|---------|-------------|
 | OPENROUTER_API_KEY | (required) | Your OpenRouter API key |
-| MODEL | anthropic/claude-sonnet-4-20250514 | Model to use |
+| MODEL | anthropic/claude-opus-5.5 | Model to use |
 | ENDPOINT | https://openrouter.ai/api/v1/chat/completions | API endpoint |
+| SYSTEM_PROMPT_FILE | system_prompt.txt | System prompt path |
+| HISTORY_FILE | history.json | Conversation history path |
 | AUTO | 0 | Set to 1 to auto-execute scripts |
 
 ## How It Works
 
-1. User describes a task in natural language
-2. Agent builds messages with system prompt + history + current task
-3. Sends request to OpenRouter with `run_script` tool definition
+1. User describes a task in natural language; it is appended to history
+2. Agent builds messages: system prompt + full history (prompt-cache markers on the system prompt and last message)
+3. Sends request to OpenRouter with the `run_script` tool definition
 4. AI responds with either:
-   - **Tool call**: Script to execute (user confirms, output saved)
-   - **Text**: Direct response (displayed to user)
-5. History and results persist for multi-turn conversations
+   - **Tool call(s)**: each script is shown for confirmation, executed with `bash -c`, and its output appended as a `role:"tool"` message, then the API is called again
+   - **Text**: displayed to the user, ending the turn
+5. History persists in `history.json` across sessions
 6. Prompt caching reduces API costs on repeated context

@@ -9,7 +9,7 @@ command -v jq >/dev/null || { echo "Error: jq required"; exit 1; }
 
 # Configuration via environment variables
 ENDPOINT="${ENDPOINT:-https://openrouter.ai/api/v1/chat/completions}"
-MODEL="${MODEL:-anthropic/claude-opus-4.5}"
+MODEL="${MODEL:-anthropic/claude-opus-5.5}"
 SYSTEM_PROMPT_FILE="${SYSTEM_PROMPT_FILE:-system_prompt.txt}"
 HISTORY_FILE="${HISTORY_FILE:-history.json}"
 

@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# Minimal CLI AI Coding Agent: OpenRouter, Claude Sonnet 4, cache-optimized
+# Minimal CLI AI coding agent: OpenRouter + Claude, no tool calls (bash from code blocks), cache-optimized
 # Deps: curl, jq, coreutils
 
 [ -z "$OPENROUTER_API_KEY" ] && { echo "Error: OPENROUTER_API_KEY not set"; exit 1; }

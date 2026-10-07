@@ -59,12 +59,12 @@ A lightweight bash-based AI coding agent that uses the OpenRouter API with nativ
 
 ```
 ├── agent.sh           # Main agent (native tool calls)
-├── agent-no-tools.sh  # Legacy agent: extracts bash from ```bash blocks,
+├── agent-no-tools.sh  # Alternative agent without tool calls: extracts bash from ```bash blocks,
 │                      #   feeds output back via result.txt
 ├── system_prompt.txt  # Customizable system instructions
 ├── history.json       # Conversation memory (user/assistant/tool messages)
-├── result.txt         # Last script output (agent-no-tools.sh only)
-├── generated_script.sh# Last generated script (agent-no-tools.sh only)
+├── result.txt         # Last script output (agent-no-tools.sh, created on run)
+├── generated_script.sh# Last generated script (agent-no-tools.sh, created on run)
 └── test.sh            # Offline tests (fake curl)
 ```
 

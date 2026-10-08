@@ -43,10 +43,10 @@ call_api() {
     curl -s "$ENDPOINT" -H "Authorization: Bearer $OPENROUTER_API_KEY" -H "Content-Type: application/json" --data-binary @-
 }
 
-echo "AI Coding Agent (proper tool protocol). Type 'exit' to quit."
+echo "femtoagent: 'exit' or ^D quits"
 
 while true; do
-    read -e -p "You: " prompt || break   # EOF (Ctrl-D) exits
+    read -e -p $'\n› ' prompt || break   # EOF (Ctrl-D) exits
     [[ "$prompt" = "exit" ]] && break
     [[ -z "$prompt" ]] && continue
 
@@ -61,18 +61,15 @@ while true; do
         append_msg "$msg"
 
         if ! jq -e '.tool_calls | length > 0' <<<"$msg" >/dev/null; then
-            echo "AI: $(jq -r '.content // "No response"' <<<"$msg")"
+            printf '\n● %s\n' "$(jq -r '.content // "No response"' <<<"$msg")"
             break
         fi
 
-        n=$(jq '.tool_calls | length' <<<"$msg")
-        i=0
         # fd 3 keeps stdin free for the confirmation prompt and the scripts
         while read -r -u 3 tc; do
-            ((i++))
             id=$(jq -r '.id' <<<"$tc")
             script=$(jq -r '.function.arguments | fromjson | .script // empty' <<<"$tc")
-            echo "Script [$i/$n]: $script"
+            printf '\n$ %s\n' "$script"
 
             if [[ "$AUTO" != "1" ]]; then
                 read -e -p "Run? (y/n/a=all): " c

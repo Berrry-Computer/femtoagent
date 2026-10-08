@@ -36,7 +36,7 @@ tools() { jq -r '[.[] | select(.role=="tool") | .content] | join("|")' "$T/h.jso
 
 echo "# text reply + request shape"
 resp "$(text hi)"; run "q"
-has "prints reply" "AI: hi"
+has "prints reply" "● hi"
 eq  "history" "user,assistant" "$(roles)"
 eq  "request" '{"model":"anthropic/claude-opus-5.5","tools":1,"cache":[true,true]}' \
     "$(jq -c '{model, tools:(.tools|length), cache:[.messages[0], .messages[-1] | has("cache_control")]}' "$T/req_1.json")"
@@ -45,7 +45,7 @@ echo "# tool calls: y runs, n skips"
 resp "$(tool t1 'echo one' t2 'echo two')" "$(text done)"; run "q" y n
 eq  "history" "user,assistant,tool,tool,assistant" "$(roles)"
 eq  "tool results" "one|[Skipped by user]" "$(tools)"
-has "final reply" "AI: done"
+has "final reply" "● done"
 
 echo "# 'a' approves the rest"
 resp "$(tool t1 'echo one' t2 'echo two')" "$(text done)"; run "q" a

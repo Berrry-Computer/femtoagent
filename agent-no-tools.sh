@@ -18,10 +18,10 @@ SCRIPT_FILE="${SCRIPT_FILE:-generated_script.sh}"
 touch "$RESULT_FILE"
 [ -f "$SYSTEM_PROMPT_FILE" ] || echo "You are a bash coding agent. Generate only the bash script code for the task, no text." > "$SYSTEM_PROMPT_FILE"
 
-echo "Welcome to AI Coding Agent. Describe task; I'll generate/execute bash. Type 'exit' to quit."
+echo "femtoagent (no tools): 'exit' or ^D quits"
 
 while true; do
-    read -e -p "You: " prompt || break   # EOF (Ctrl-D) exits
+    read -e -p $'\n› ' prompt || break   # EOF (Ctrl-D) exits
     [ "$prompt" = "exit" ] && break
 
     # Build user content with result context
@@ -49,7 +49,7 @@ while true; do
     raw_response=$(echo "$response" | jq -r '.choices[0].message.content // "No script generated"')
     script=$(echo "$raw_response" | sed -n '/^```/,/^```$/p' | sed '1d;$d')
     [ -z "$script" ] && script="$raw_response"
-    echo "AI Generated Script: $script"
+    printf '\n$ %s\n' "$script"
 
     # Append to history
     jq --arg u "$user_content" --arg a "$script" '. + [{role:"user",content:$u},{role:"assistant",content:$a}]' "$HISTORY_FILE" > "$HISTORY_FILE.tmp" && mv "$HISTORY_FILE.tmp" "$HISTORY_FILE"

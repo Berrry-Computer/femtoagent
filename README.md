@@ -12,7 +12,7 @@ A lightweight bash-based AI coding agent that uses the OpenRouter API with nativ
 
     ┌──────────────────┐
     │   User Input     │
-    │   "You: ___"     │
+    │   "› ___"        │
     └────────┬─────────┘
              │ append {role:"user"}
              ▼
@@ -32,11 +32,11 @@ A lightweight bash-based AI coding agent that uses the OpenRouter API with nativ
            ▼                              ▼
     ┌──────────────┐              ┌───────────────┐
     │  tool_calls  │              │  Text reply   │
-    │  run_script  │              │  "AI: ..."    │
+    │  run_script  │              │  "● ..."      │
     └──────┬───────┘              └───────┬───────┘
            │ for each call                │
            ▼                              ▼
-    ┌──────────────────────┐       back to "You:"
+    ┌──────────────────────┐       back to "›"
     │ Show script          │
     │ Run? (y/n/a=all)     │── n ──▶ "[Skipped by user]"
     └────────┬─────────────┘                │

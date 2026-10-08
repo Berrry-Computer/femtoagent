@@ -46,7 +46,7 @@ call_api() {
 echo "AI Coding Agent (proper tool protocol). Type 'exit' to quit."
 
 while true; do
-    read -e -p "You: " prompt
+    read -e -p "You: " prompt || break   # EOF (Ctrl-D) exits
     [[ "$prompt" = "exit" ]] && break
     [[ -z "$prompt" ]] && continue
 

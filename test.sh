@@ -8,7 +8,7 @@ mkdir "$T/bin"
 cat > "$T/bin/curl" <<'CURL'
 #!/bin/bash
 n=$(( $(cat "$T/n") + 1 )); echo $n > "$T/n"
-cat > "$T/req_$n.json"
+while [ $# -gt 0 ]; do case $1 in -d|--data-binary) [ "$2" = "@-" ] && cat > "$T/req_$n.json" || printf "%s" "$2" > "$T/req_$n.json"; shift;; esac; shift; done
 cat "$T/resp_$n" 2>/dev/null
 CURL
 chmod +x "$T/bin/curl"
@@ -62,6 +62,17 @@ echo "# error mid tool loop keeps tool results"
 resp "$(tool t1 'echo one')" 'not json' "$(text ok)"; run c y d
 eq  "history" "user,assistant,tool,user,assistant" "$(roles)"
 eq  "tool result" "one" "$(tools)"
+
+echo "# agent-no-tools.sh: own history file, code-block extraction, previous-result"
+resp "$(text $'Here:\n```bash\necho hi\n```')" "$(text 'echo second')"
+echo 0 > "$T/n"; mkdir "$T/nt"; R=$(pwd)
+(cd "$T/nt" && printf '%s\n' q y q2 n exit | PATH="$T/bin:$PATH" OPENROUTER_API_KEY=test \
+    SYSTEM_PROMPT_FILE="$R/system_prompt.txt" bash "$R/agent-no-tools.sh" > "$T/out" 2>&1)
+eq  "history files" "own=yes shared=no" "own=$([ -f "$T/nt/history-no-tools.json" ] && echo yes || echo no) shared=$([ -f "$T/nt/history.json" ] && echo yes || echo no)"
+eq  "extracted script" "echo hi" "$(jq -r '.[1].content' "$T/nt/history-no-tools.json")"
+eq  "result file" "hi" "$(cat "$T/nt/result.txt")"
+eq  "previous-result sent" "true" "$(jq '.messages[-1].content | startswith("<previous-result>hi")' "$T/req_2.json")"
+eq  "no tools in request" "null" "$(jq -c .tools "$T/req_2.json")"
 
 echo; echo "$pass passed, $fail failed"
 ((fail == 0))

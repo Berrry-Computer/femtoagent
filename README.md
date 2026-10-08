@@ -115,7 +115,9 @@ bash test.sh
 | MODEL | anthropic/claude-opus-5.5 | Model to use |
 | ENDPOINT | https://openrouter.ai/api/v1/chat/completions | API endpoint |
 | SYSTEM_PROMPT_FILE | system_prompt.txt | System prompt path |
-| HISTORY_FILE | history.json | Conversation history path |
+| HISTORY_FILE | history.json (agent.sh), history-no-tools.json (agent-no-tools.sh) | Conversation history path |
+| RESULT_FILE | result.txt | Last script output (agent-no-tools.sh) |
+| SCRIPT_FILE | generated_script.sh | Last generated script (agent-no-tools.sh) |
 | AUTO | 0 | Set to 1 to auto-execute scripts |
 
 ## How It Works
